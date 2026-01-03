@@ -24,15 +24,12 @@ const CATEGORIES = [
 ];
 
 export default function App() {
-  // Auth & Approval State
   const [session, setSession] = useState(null);
   const [isApproved, setIsApproved] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  // App State
   const [activities, setActivities] = useState([]);
   const [name, setName] = useState('');
   const [amount, setAmount] = useState('');
@@ -56,18 +53,14 @@ export default function App() {
   }, [session]);
 
   async function fetchProfile() {
-    // We now select is_approved to check access
     const { data, error } = await supabase.from('profiles').select('budget, is_approved').single();
-    
     if (data) {
       setUserBudget(data.budget);
       setIsApproved(data.is_approved);
     }
-    
     if (error && error.code === 'PGRST116') {
-      // Create new profile with is_approved as false by default
-      await supabase.from('profiles').insert([{ id: session.user.id, budget: 50000, is_approved: false }]);
-      setIsApproved(false);
+      await supabase.from('profiles').insert([{ id: session.user.id, budget: 50000 }]);
+      fetchProfile();
     }
   }
 
@@ -92,7 +85,6 @@ export default function App() {
     setName(''); setAmount(''); fetchData();
   }
 
-  // --- CHART & NAVIGATION LOGIC ---
   const isSameDay = (d1, d2) => d1.toDateString() === d2.toDateString();
   const isSameMonth = (d1, d2) => d1.getMonth() === d2.getMonth() && d1.getFullYear() === d2.getFullYear();
 
@@ -135,9 +127,6 @@ export default function App() {
     return Math.max(amountLeft / daysRemaining, 0);
   }, [userBudget, monthTotal, dayTotal, viewDate]);
 
-  // --- UI SCREENS ---
-
-  // 1. LOGIN SCREEN
   if (!session) {
     return (
       <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-6 text-center">
@@ -160,30 +149,19 @@ export default function App() {
     );
   }
 
-  // 2. AWAITING APPROVAL SCREEN
   if (session && !isApproved) {
     return (
       <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-6 text-center">
         <div className="w-full max-w-md bg-slate-900 border border-slate-800 p-10 rounded-[3rem] shadow-2xl">
-          <div className="w-20 h-20 bg-amber-500/20 rounded-3xl mx-auto mb-6 flex items-center justify-center">
-            <Lock className="text-amber-500" size={40} />
-          </div>
+          <Lock className="text-amber-500 mx-auto mb-6" size={40} />
           <h1 className="text-2xl font-black mb-2">Access Restricted</h1>
-          <p className="text-slate-400 text-sm mb-10 leading-relaxed font-medium">
-            Your account is currently pending approval. Please contact the administrator to enable your access.
-          </p>
-          <button 
-            onClick={() => supabase.auth.signOut()}
-            className="w-full bg-slate-800 p-4 rounded-2xl font-bold text-slate-300 hover:bg-slate-700 transition-all active:scale-95"
-          >
-            Sign Out
-          </button>
+          <p className="text-slate-400 text-sm mb-10 leading-relaxed">Pending administrator approval. Contact the owner to enable access.</p>
+          <button onClick={() => supabase.auth.signOut()} className="w-full bg-slate-800 p-4 rounded-2xl font-bold">Sign Out</button>
         </div>
       </div>
     );
   }
 
-  // 3. MAIN APP UI
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 p-4 pb-20 font-sans tracking-tight">
       <div className="max-w-md mx-auto">
@@ -198,7 +176,6 @@ export default function App() {
           </div>
         </header>
 
-        {/* DATE NAVIGATION */}
         <div className="flex flex-col gap-2 mb-6">
             <div className="flex items-center justify-between px-2">
               <button onClick={() => setViewDate(new Date(viewDate.setMonth(viewDate.getMonth() - 1)))} className="p-2 text-slate-600"><ChevronLeft size={16}/></button>
@@ -215,7 +192,6 @@ export default function App() {
             </div>
         </div>
 
-        {/* BUDGET CARD */}
         <div className="bg-gradient-to-br from-slate-800 to-slate-900 p-6 rounded-[2.5rem] border border-slate-700 shadow-2xl mb-8">
           <div className="flex justify-between items-start mb-6 text-left">
             <div>
@@ -233,7 +209,6 @@ export default function App() {
           </div>
         </div>
 
-        {/* ALLOWANCE BOX */}
         <div className={`mb-8 p-5 rounded-[2.5rem] border flex items-center gap-4 ${dayTotal > allowance ? 'bg-red-500/10 border-red-500/30 text-red-200' : 'bg-blue-600 border-blue-400/30 text-white shadow-xl'}`}>
           <div className="p-3 bg-white/20 rounded-2xl"><Lightbulb size={24} /></div>
           <div className="text-left">
@@ -242,13 +217,12 @@ export default function App() {
           </div>
         </div>
 
-        {/* INPUT FORM */}
         <div className="bg-white text-slate-950 p-6 rounded-[2.5rem] shadow-2xl mb-8">
           <form onSubmit={handleSubmit} className="space-y-3">
-            <input className="w-full bg-slate-100 p-4 rounded-2xl font-bold outline-none" placeholder="Description..." value={name} onChange={(e) => setName(e.target.value)} />
+            <input className="w-full bg-slate-100 p-4 rounded-2xl font-bold outline-none text-slate-800" placeholder="Description..." value={name} onChange={(e) => setName(e.target.value)} />
             <div className="flex gap-2">
-              <input type="number" className="w-2/3 bg-slate-100 p-4 rounded-2xl font-black text-xl outline-none" placeholder="₹ Amount" value={amount} onChange={(e) => setAmount(e.target.value)} />
-              <select className="w-1/3 bg-slate-100 p-4 rounded-2xl font-bold text-blue-600 outline-none appearance-none" value={category} onChange={(e) => setCategory(e.target.value)}>
+              <input type="number" className="w-2/3 bg-slate-100 p-4 rounded-2xl font-black text-xl outline-none text-slate-900" placeholder="₹ Amount" value={amount} onChange={(e) => setAmount(e.target.value)} />
+              <select className="w-1/3 bg-slate-100 p-4 rounded-2xl font-bold text-blue-600 outline-none" value={category} onChange={(e) => setCategory(e.target.value)}>
                 {CATEGORIES.map(c => <option key={c.name} value={c.name}>{c.name}</option>)}
               </select>
             </div>
@@ -256,19 +230,13 @@ export default function App() {
           </form>
         </div>
 
-        {/* HISTORY LIST */}
-        <div className="space-y-3 mb-10">
-          <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 px-2 mb-2">Activity</h3>
+        <div className="space-y-3 mb-10 text-left">
+          <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 px-2 mb-2">Today's Activity</h3>
           {selectedDayActivities.length > 0 ? selectedDayActivities.map((item) => (
             <div key={item.id} className="flex items-center justify-between bg-slate-900/50 p-4 rounded-3xl border border-slate-800">
-              <div className="flex items-center gap-4 text-left">
-                <div className="p-3 bg-slate-800 rounded-2xl text-blue-400">
-                  {CATEGORIES.find(c => c.name === item.category)?.icon || <MoreHorizontal />}
-                </div>
-                <div>
-                  <div className="font-bold text-slate-100 text-sm tracking-tight">{item.name}</div>
-                  <div className="text-[9px] text-slate-600 font-black uppercase">{item.category}</div>
-                </div>
+              <div className="flex items-center gap-4">
+                <div className="p-3 bg-slate-800 rounded-2xl text-blue-400">{CATEGORIES.find(c => c.name === item.category)?.icon}</div>
+                <div><div className="font-bold text-slate-100 text-sm">{item.name}</div><div className="text-[9px] text-slate-600 font-black uppercase">{item.category}</div></div>
               </div>
               <div className="flex items-center gap-4">
                   <div className="font-black text-white">-₹{formatINR(item.amount)}</div>
@@ -278,7 +246,6 @@ export default function App() {
           )) : <div className="py-10 text-center text-slate-700 text-[10px] font-black uppercase tracking-widest">No spends recorded</div>}
         </div>
 
-        {/* VISUAL INSIGHTS (BOTTOM) */}
         <div className="grid grid-cols-1 gap-6 mb-8 border-t border-slate-800 pt-8">
             <div className="bg-slate-900/30 border border-slate-900 p-6 rounded-[2.5rem]">
                 <h3 className="text-xs font-black uppercase tracking-widest text-slate-500 mb-6 flex items-center gap-2"><PieIcon size={14}/> Monthly Breakdown</h3>
@@ -289,7 +256,10 @@ export default function App() {
                                 <Pie data={pieData} innerRadius={65} outerRadius={85} paddingAngle={5} dataKey="value">
                                     {pieData.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} />)}
                                 </Pie>
-                                <Tooltip contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '12px', fontSize: '10px' }} />
+                                <Tooltip 
+                                    contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '12px', fontSize: '12px', color: '#ffffff' }}
+                                    itemStyle={{ color: '#ffffff' }}
+                                />
                             </PieChart>
                         </ResponsiveContainer>
                     ) : <div className="h-full flex items-center justify-center text-slate-700 text-[10px] font-black uppercase">No Data</div>}
@@ -302,7 +272,11 @@ export default function App() {
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={barData}>
                             <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{fill: '#475569', fontSize: 10}} />
-                            <Tooltip cursor={{fill: 'transparent'}} contentStyle={{ backgroundColor: '#0f172a', border: 'none', borderRadius: '12px', fontSize: '10px' }} />
+                            <Tooltip 
+                                cursor={{fill: 'transparent'}} 
+                                contentStyle={{ backgroundColor: '#1e293b', border: '1px solid #334155', borderRadius: '12px', fontSize: '12px', color: '#ffffff' }}
+                                itemStyle={{ color: '#ffffff' }}
+                            />
                             <Bar dataKey="amount" fill="#3b82f6" radius={[6, 6, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
@@ -310,14 +284,13 @@ export default function App() {
             </div>
         </div>
 
-        {/* SETTINGS MODAL */}
         {isSettingsOpen && (
           <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-6">
             <div className="bg-slate-900 w-full max-w-xs p-8 rounded-[3rem] border border-slate-800 shadow-2xl">
               <h2 className="text-xl font-black mb-6">Settings</h2>
               <input type="range" min="5000" max="200000" step="5000" value={userBudget} onChange={(e) => updateBudget(parseInt(e.target.value))} className="w-full h-1.5 bg-slate-800 rounded-lg accent-blue-500 mb-8" />
               <p className="text-white font-black text-xl mb-6">₹{formatINR(userBudget)}</p>
-              <button onClick={() => setIsSettingsOpen(false)} className="w-full bg-blue-600 p-4 rounded-2xl font-bold">Close</button>
+              <button onClick={() => setIsSettingsOpen(false)} className="w-full bg-blue-600 p-4 rounded-2xl font-bold active:scale-95 transition-all">Close</button>
             </div>
           </div>
         )}
